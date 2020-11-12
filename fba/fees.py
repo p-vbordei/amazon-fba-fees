@@ -8,12 +8,6 @@ class Common:
     def get_referral_fee(amazon):
         return Decimal('0.15')
 
-    @staticmethod
-    def is_media(category):
-        media = ['Books', 'Music', 'Videos', 'Video Games',
-                 'DVDs', 'Software']
-
-        return category in media
 
     @staticmethod
     def get_volume(length, width, height):

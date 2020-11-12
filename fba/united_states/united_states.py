@@ -11,24 +11,13 @@ class UnitedStates(Common):
     """United states fee calculations
     https://www.amazon.com/gp/aw/help/id=201119390
     """
-    def __init__(self, year=2017):
-        self._year = year
+    def __init__(self):
         self._fee_schedule = {
-            "small_standard": {
-                "non-media": 2.41,
-                "media": 2.41
-            },
+            "small_standard": 2.41,
             "large_standard": {
-                "non-media": {
                     "a": 2.99,
                     "b": 4.18,
                     "c": lambda wt: (4.18 + max((wt - 2), 0) * 0.39)
-                },
-                "media": {
-                    "a": 2.41,
-                    "b": 2.99,
-                    "c": lambda wt: (4.18 + max((wt - 2), 0) * 0.39)
-                }
             },
             "small_oversize": lambda wt: (6.85 + max((wt - 2), 0) * 0.39),
             "medium_oversize": lambda wt: (9.20 + max((wt - 2), 0) * 0.39),
@@ -46,8 +35,8 @@ class UnitedStates(Common):
 
         return -1
 
-    def get_order_handling(self, size, media):
-        if size in ["small_standard", "large_standard"] and media is False:
+    def get_order_handling(self, size):
+        if size in ["small_standard", "large_standard"] is False:
             return 1
         else:
             return 0
@@ -65,15 +54,11 @@ class UnitedStates(Common):
             if item[0] == size:
                 return item[1]
 
-    def get_weight_handling(self, tier, media, weight):
+    def get_weight_handling(self, tier, weight):
         matrix = {
             "small_standard": lambda x: 0.5 * x,
-            "large_standard": {
-                "media": lambda x: (
-                    0.85 if x <= 1 else 1.24 + max((x - 2), 0) * 0.41),
-                "non-media": lambda x: (
-                    0.96 if x <= 1 else 1.95 + max((x - 2), 0) * 0.39)
-                },
+            "large_standard": lambda x: (
+                    0.96 if x <= 1 else 1.95 + max((x - 2), 0) * 0.39),
             "small_oversize": lambda x: (
                 2.06 if x <= 2 else 2.06 + (x - 2) * 0.39),
             "medium_oversize": lambda x: (
@@ -85,14 +70,10 @@ class UnitedStates(Common):
              }
 
         prelim = matrix[tier]
-        if isinstance(prelim, dict):
-            prelim = prelim[media]
-
         return prelim(weight)
 
     def is_standard(self, l, w, h, wt):
         """Dims are in inches, weight in ounces.
-        Hasn't changed for 2017.
 
         From Amazon:
         https://www.amazon.com/gp/help/customer/display.html?nodeId=201119390
@@ -118,13 +99,13 @@ class UnitedStates(Common):
 
         o_weight = weight
         if volume > 5184 or oversize:
-            dim_weight = volume / 166
+            dim_weight = volume / 139
             if dim_weight > weight:
                 o_weight = dim_weight
 
         return o_weight
 
-    def get_product_size_tier(self, length, width, height, weight, media):
+    def get_product_size_tier(self, length, width, height, weight):
         """ Returns string describing product size tier """
 
         girth = 2 * (width + height) + length
@@ -138,9 +119,6 @@ class UnitedStates(Common):
                  ('108 n/a n/a 130 150', 'medium_oversize'),
                  ('108 n/a n/a 165 150', 'large_oversize'),
                  ('9999999 n/a n/a 9999999 9999999', 'special_oversize')]
-
-        if media:
-            tiers = [('15 12 .75 n/a .875', 'small_standard')] + tiers
 
         def _compare(m):
             for pair in matrix:
@@ -160,15 +138,15 @@ class UnitedStates(Common):
             if _compare(matrix):
                 return tier[1]
 
-    def _determine_fee(self, tier, media, weight):
+    def _determine_fee(self, tier, weight):
         if(tier == "small_standard"):
-            return self._fee_schedule[tier][media]
+            return self._fee_schedule[tier]
         elif(tier == "large_standard"):
             wt_class = self._weight_class(weight)
             if(wt_class == 'a' or wt_class == 'b'):
-                return self._fee_schedule[tier][media][wt_class]
+                return self._fee_schedule[tier][wt_class]
             elif(wt_class == 'c'):
-                return self._fee_schedule[tier][media][wt_class](weight)
+                return self._fee_schedule[tier][wt_class](weight)
         elif(tier == "small_oversize" or "special_oversize"):
             return self._fee_schedule[tier](weight)
 
@@ -208,14 +186,13 @@ class UnitedStates(Common):
         volume = self.get_volume(length, width, height)
         o_weight = self.get_outbound_weight(volume, weight, oversize)
 
-        media = self.is_media(category)
         size = self.get_product_size_tier(length, width, height,
-                                          o_weight, media)
+                                          o_weight)
 
         sizes = ["small_oversize", "medium_oversize", "large_oversize"]
 
         # Redundant? isn't it part of outbound_weight?
-        if size in sizes or (not media and weight > 1 and not oversize):
+        if size in sizes or (weight > 1 and not oversize):
             weight = max(volume / 166, weight)
 
         if oversize:
@@ -225,23 +202,27 @@ class UnitedStates(Common):
 
         shipping_weight = ceil(shipping_weight)
 
-        mediaStr = "media" if media else "non-media"
 
-        if(self._year == 2016):
-            order_handling = self.get_order_handling(size, media)
-            pick_and_pack = self.get_pick_and_pack(size)
-            weight_handling = self.get_weight_handling(size, mediaStr,
-                                                       shipping_weight)
-
-            fee = order_handling + pick_and_pack + weight_handling
-        elif(self._year == 2017):
-            fee = self._determine_fee(size, mediaStr, shipping_weight)
+        fee = self._determine_fee(size, shipping_weight)
 
         # clothing gets $0.40 additional pick and pack fee
         if category == 'Apparel':
             fee += 0.40
 
         return Decimal(fee).quantize(Decimal('.02'), rounding=ROUND_HALF_UP)
+
+
+    def get_multiplier(std=True, month):
+        """Amazon storage fee multiplier for United States.
+        """
+
+        end_year = month in [10, 11, 12]
+
+        if std:
+            return Decimal('0.64') if not end_year else Decimal('2.35')
+        else:
+            return Decimal('0.43') if not end_year else Decimal('1.15')
+
 
     def get_monthly_storage(self, date, l, w, h, wt):
         """Returns amazon storage fee for United States.
@@ -259,8 +240,9 @@ class UnitedStates(Common):
         size = self.is_standard(l, w, h, wt)
 
         # Find correct multiplier based on date, since fees change
-        multiplier = get_multiplier(date)
         month = parse(date).month
+        multiplier = get_multiplier(std = True,month)
+        
 
         # Pass in month and size to the multiplier we were given
         res = Decimal(cubic_feet * multiplier(size, month))
