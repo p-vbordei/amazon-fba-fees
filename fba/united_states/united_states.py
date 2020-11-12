@@ -4,7 +4,6 @@ from decimal import Decimal, ROUND_HALF_UP
 from dateutil.parser import parse
 
 from ..fees import Common
-from .monthly_storage import get_multiplier
 
 
 class UnitedStates(Common):
@@ -212,16 +211,7 @@ class UnitedStates(Common):
         return Decimal(fee).quantize(Decimal('.02'), rounding=ROUND_HALF_UP)
 
 
-    def get_multiplier(std=True, month):
-        """Amazon storage fee multiplier for United States.
-        """
 
-        end_year = month in [10, 11, 12]
-
-        if std:
-            return Decimal('0.64') if not end_year else Decimal('2.35')
-        else:
-            return Decimal('0.43') if not end_year else Decimal('1.15')
 
 
     def get_monthly_storage(self, date, l, w, h, wt):
@@ -241,9 +231,12 @@ class UnitedStates(Common):
 
         # Find correct multiplier based on date, since fees change
         month = parse(date).month
-        multiplier = get_multiplier(std = True,month)
-        
+        end_year = month in [10, 11, 12]
 
+        # Amazon storage fee multiplier for United States.
+
+        multiplier = Decimal('0.43') if not end_year else Decimal('1.15')
+        
         # Pass in month and size to the multiplier we were given
         res = Decimal(cubic_feet * multiplier(size, month))
         # print(volume, month)
