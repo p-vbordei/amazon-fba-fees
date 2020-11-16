@@ -12,16 +12,16 @@ class UnitedStates(Common):
     """
     def __init__(self):
         self._fee_schedule = {
-            "small_standard": 2.41,
+            "small_standard": 2.50,
             "large_standard": {
-                    "a": 2.99,
-                    "b": 4.18,
-                    "c": lambda wt: (4.18 + max((wt - 2), 0) * 0.39)
+                    "a": 3.31,
+                    "b": 3.48,
+                    "c": lambda wt: (5.42 + max((wt - 3), 0) * 0.38)
             },
-            "small_oversize": lambda wt: (6.85 + max((wt - 2), 0) * 0.39),
-            "medium_oversize": lambda wt: (9.20 + max((wt - 2), 0) * 0.39),
-            "large_oversize": lambda wt: (75.06 + max((wt - 90), 0) * 0.80),
-            "special_oversize": lambda wt: (138.08 + max((wt - 90), 0) * 0.92),
+            "small_oversize": lambda wt: (8.26 + max((wt - 2), 0) * 0.38),
+            "medium_oversize": lambda wt: (11.37 + max((wt - 2), 0) * 0.39),
+            "large_oversize": lambda wt: (75.78 + max((wt - 90), 0) * 0.79),
+            "special_oversize": lambda wt: (137.32 + max((wt - 90), 0) * 0.91),
         }
 
     def _weight_class(self, wt):
@@ -59,13 +59,13 @@ class UnitedStates(Common):
             "large_standard": lambda x: (
                     0.96 if x <= 1 else 1.95 + max((x - 2), 0) * 0.39),
             "small_oversize": lambda x: (
-                2.06 if x <= 2 else 2.06 + (x - 2) * 0.39),
+                8.26 if x <= 2 else 8.26 + (x - 2) * 0.38),
             "medium_oversize": lambda x: (
-                2.73 if x <= 2 else 2.73 + (x - 2) * 0.39),
+                11.37 if x <= 2 else 11.37 + (x - 2) * 0.39),
             "large_oversize": lambda x: (
-                63.98 if x <= 90 else 63.98 + (x - 90) * 0.80),
+                75.78 if x <= 90 else 75.78 + (x - 90) * 0.79),
             "special_oversize": lambda x: (
-                124.58 if x <= 90 else 124.58 + (x - 90) * 0.92),
+                137.32 if x <= 90 else 137.32 + (x - 90) * 0.91),
              }
 
         prelim = matrix[tier]
@@ -192,7 +192,7 @@ class UnitedStates(Common):
 
         # Redundant? isn't it part of outbound_weight?
         if size in sizes or (weight > 1 and not oversize):
-            weight = max(volume / 166, weight)
+            weight = max(volume / 139, weight)
 
         if oversize:
             shipping_weight = weight + Decimal('1')
